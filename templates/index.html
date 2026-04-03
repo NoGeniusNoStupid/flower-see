@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 花朵识别 - 智能小助手</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🌸</span>
+                <h1>花朵识别</h1>
+            </div>
+            <p class="subtitle">智能图像识别 · 轻松学习之旅</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 上传区域 -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-placeholder" id="uploadPlaceholder">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 17v-4a4 4 0 014-4h8a4 4 0 014 4v4"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">点击上传花朵图片</p>
+                        <p class="upload-hint">或拖拽图片到这里</p>
+                    </div>
+                    <div class="preview-container" id="previewContainer" style="display: none;">
+                        <img id="previewImage" class="preview-image" alt="预览">
+                        <button class="clear-btn" id="clearBtn" title="清除">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+
+                <button class="recognize-btn" id="recognizeBtn" disabled>
+                    <span class="btn-icon">🔍</span>
+                    <span class="btn-text">开始识别</span>
+                </button>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <div class="result-card" id="resultCard">
+                    <div class="result-icon" id="resultIcon">🌸</div>
+                    <div class="result-content">
+                        <h2 class="result-title" id="resultTitle">识别结果</h2>
+                        <p class="result-message" id="resultMessage"></p>
+                        <div class="similarity-bar" id="similarityBar">
+                            <div class="similarity-label">
+                                <span>相似度</span>
+                                <span id="similarityValue">0%</span>
+                            </div>
+                            <div class="bar-track">
+                                <div class="bar-fill" id="barFill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 学习表单 -->
+                <div class="learn-card" id="learnCard" style="display: none;">
+                    <h3 class="learn-title">📚 教我认识这朵花</h3>
+                    <p class="learn-hint">告诉我这是什么花，下次我就能认出来了！</p>
+                    <div class="learn-form">
+                        <input type="text" class="learn-input" id="flowerName" placeholder="输入花的名字，如：郁金香">
+                        <input type="text" class="learn-input" id="flowerNote" placeholder="添加备注（可选），如：红色、春天开花">
+                        <button class="learn-btn" id="learnBtn">
+                            <span class="btn-icon">📖</span>
+                            <span class="btn-text">教我认识</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载状态 -->
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p class="loading-text">正在识别中...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 类别展示 -->
+        <section class="categories-section">
+            <h3 class="section-title">
+                <span class="title-icon">📋</span>
+                已学习的花朵
+            </h3>
+            <div class="categories-grid" id="categoriesGrid">
+                <div class="category-loading">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 底部信息 -->
+        <footer class="footer">
+            <p>用简单算法探索图像识别的奥秘</p>
+            <p class="tech-hint">特征提取 + 相似度比对 = 智能识别</p>
+        </footer>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast" id="toast">
+        <span class="toast-message" id="toastMessage"></span>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
