@@ -20,7 +20,7 @@ app.config['IMAGE_FOLDER'] = '图片'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 # 相似度阈值，低于此值认为"没学会"
-SIMILARITY_THRESHOLD = 0.5
+SIMILARITY_THRESHOLD = 0.65
 
 
 def extract_features(image_path):
@@ -161,11 +161,6 @@ def get_learned_from_learned_folder():
         folder_path = os.path.join(base_path, folder)
         if os.path.isdir(folder_path):
             categories[folder] = []
-            meta_file = os.path.join(folder_path, 'meta.json')
-            meta = {}
-            if os.path.exists(meta_file):
-                with open(meta_file, 'r', encoding='utf-8') as f:
-                    meta = json.load(f)
 
             for file in os.listdir(folder_path):
                 if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')) and file != 'meta.json':
@@ -175,8 +170,7 @@ def get_learned_from_learned_folder():
                         categories[folder].append({
                             'path': file_path,
                             'features': features.tolist(),
-                            'name': file,
-                            'note': meta.get(file, {}).get('note', '')
+                            'name': file
                         })
 
     return categories
@@ -225,7 +219,7 @@ def recognize_flower(image_data):
         return None, best_similarity
 
 
-def save_learned_flower(category_name, image_data, note=''):
+def save_learned_flower(category_name, image_data):
     """保存学习的新花朵"""
     # 创建类别文件夹
     folder_path = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
@@ -242,24 +236,6 @@ def save_learned_flower(category_name, image_data, note=''):
     img_bytes = base64.b64decode(image_data)
     img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
     img.save(file_path, 'JPEG', quality=95)
-
-    # 保存元数据
-    meta_file = os.path.join(folder_path, 'meta.json')
-    meta = {}
-    if os.path.exists(meta_file):
-        try:
-            with open(meta_file, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-        except:
-            meta = {}
-
-    meta[filename] = {
-        'note': note,
-        'timestamp': timestamp
-    }
-
-    with open(meta_file, 'w', encoding='utf-8') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
 
     return file_path
 
@@ -308,7 +284,6 @@ def learn():
 
     image_data = data['image']
     category_name = data['category'].strip()
-    note = data.get('note', '')
 
     if not category_name:
         return jsonify({'success': False, 'error': '请输入花的名字'})
@@ -320,7 +295,7 @@ def learn():
             return jsonify({'success': False, 'error': '名字不能包含特殊字符'})
 
     try:
-        file_path = save_learned_flower(category_name, image_data, note)
+        file_path = save_learned_flower(category_name, image_data)
         return jsonify({
             'success': True,
             'message': f'学会了！以后我能识别"{category_name}"了！',

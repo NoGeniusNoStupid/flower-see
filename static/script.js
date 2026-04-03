@@ -20,7 +20,6 @@ const similarityValue = document.getElementById('similarityValue');
 const barFill = document.getElementById('barFill');
 const learnCard = document.getElementById('learnCard');
 const flowerName = document.getElementById('flowerName');
-const flowerNote = document.getElementById('flowerNote');
 const learnBtn = document.getElementById('learnBtn');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const categoriesGrid = document.getElementById('categoriesGrid');
@@ -29,6 +28,7 @@ const toastMessage = document.getElementById('toastMessage');
 
 // State
 let currentImageData = null;
+let isRequesting = false;  // 防止并发请求
 
 // ============================================
 // Toast 通知
@@ -64,6 +64,13 @@ function handleFile(file) {
     reader.readAsDataURL(file);
 }
 
+// ============================================
+// 结果显示
+// ============================================
+function hideResult() {
+    resultSection.style.display = 'none';
+}
+
 function clearImage() {
     currentImageData = null;
     previewImage.src = '';
@@ -72,19 +79,12 @@ function clearImage() {
     fileInput.value = '';
     recognizeBtn.disabled = true;
     hideResult();
-}
-
-// ============================================
-// 结果显示
-// ============================================
-function hideResult() {
-    resultSection.style.display = 'none';
     learnCard.style.display = 'none';
 }
 
 function showRecognizedResult(category, similarity) {
     resultSection.style.display = 'block';
-    learnCard.style.display = 'none';
+    learnCard.style.display = similarity < 1.0 ? 'block' : 'none';
 
     resultCard.className = 'result-card recognized';
     resultIcon.textContent = getFlowerEmoji(category);
@@ -114,16 +114,16 @@ function showUnknownResult(similarity) {
 
 function getFlowerEmoji(category) {
     const flowerMap = {
-        '梅花': '🌸',
+        '梅花': '🌺',
         '樱花': '🌸',
         '桃花': '🌺',
         '郁金香': '🌷',
         '玫瑰': '🌹',
         '向日葵': '🌻',
-        '菊花': '雏菊',
+        '菊花': '🌼',
         '牡丹': '🌺',
         '荷花': '🪷',
-        '兰花': '🌸'
+        '兰花': '💐'
     };
     return flowerMap[category] || '🌼';
 }
@@ -131,9 +131,14 @@ function getFlowerEmoji(category) {
 // ============================================
 // API 调用
 // ============================================
-async function recognizeFlower() {
+async function recognizeFlower(retry = true) {
     if (!currentImageData) return;
+    if (isRequesting) {
+        showToast('正在处理中，请稍候', 'info');
+        return;
+    }
 
+    isRequesting = true;
     showLoading(true);
     hideResult();
 
@@ -141,7 +146,8 @@ async function recognizeFlower() {
         const response = await fetch('/api/recognize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: currentImageData })
+            body: JSON.stringify({ image: currentImageData }),
+            signal: AbortSignal.timeout(30000)  // 30秒超时
         });
 
         const data = await response.json();
@@ -157,13 +163,19 @@ async function recognizeFlower() {
         }
     } catch (error) {
         console.error('识别错误:', error);
-        showToast('网络错误，请重试', 'error');
+        if (retry) {
+            await new Promise(r => setTimeout(r, 2000));
+            recognizeFlower(false);
+        } else {
+            showToast('网络错误，请稍后重试', 'error');
+        }
     } finally {
         showLoading(false);
+        isRequesting = false;
     }
 }
 
-async function learnFlower() {
+async function learnFlower(retry = true) {
     const name = flowerName.value.trim();
 
     if (!name) {
@@ -177,6 +189,12 @@ async function learnFlower() {
         return;
     }
 
+    if (isRequesting) {
+        showToast('正在处理中，请稍候', 'info');
+        return;
+    }
+
+    isRequesting = true;
     showLoading(true);
 
     try {
@@ -185,9 +203,9 @@ async function learnFlower() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 image: currentImageData,
-                category: name,
-                note: flowerNote.value.trim()
-            })
+                category: name
+            }),
+            signal: AbortSignal.timeout(30000)
         });
 
         const data = await response.json();
@@ -196,16 +214,21 @@ async function learnFlower() {
             showToast(data.message, 'success');
             learnCard.style.display = 'none';
             flowerName.value = '';
-            flowerNote.value = '';
             loadCategories();
         } else {
             showToast(data.error || '学习失败', 'error');
         }
     } catch (error) {
         console.error('学习错误:', error);
-        showToast('网络错误，请重试', 'error');
+        if (retry) {
+            await new Promise(r => setTimeout(r, 2000));
+            learnFlower(false);
+        } else {
+            showToast('网络错误，请稍后重试', 'error');
+        }
     } finally {
         showLoading(false);
+        isRequesting = false;
     }
 }
 
@@ -234,7 +257,6 @@ function renderCategories(categories) {
         <div class="category-card">
             <div class="category-icon">${getFlowerEmoji(name)}</div>
             <div class="category-name">${name}</div>
-            <div class="category-count">${info.count} 张学习图片</div>
         </div>
     `).join('');
 }
@@ -295,10 +317,6 @@ flowerName.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') learnFlower();
 });
 
-flowerNote.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') learnFlower();
-});
-
 // ============================================
 // 后端连接检测
 // ============================================
@@ -318,16 +336,29 @@ async function checkBackendConnection() {
     }
 }
 
-async function init() {
-    const isConnected = await checkBackendConnection();
-
-    if (!isConnected) {
-        showToast('后端服务未启动，请先运行 python app.py', 'error');
-        categoriesGrid.innerHTML = '<div class="category-loading">后端服务未启动，无法加载类别</div>';
-        return;
+// 预热后端连接（防止冷启动）
+async function warmupBackend() {
+    try {
+        await fetch('/api/categories', { method: 'GET' });
+    } catch (e) {
+        // 忽略预热失败
     }
+}
 
-    loadCategories();
+async function init() {
+    try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+
+        if (data.success) {
+            renderCategories(data.categories);
+        } else {
+            categoriesGrid.innerHTML = '<div class="category-loading">加载失败</div>';
+        }
+    } catch (error) {
+        console.error('加载类别失败:', error);
+        categoriesGrid.innerHTML = '<div class="category-loading">后端服务未启动</div>';
+    }
 }
 
 // ============================================

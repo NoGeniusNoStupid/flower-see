@@ -517,6 +517,14 @@ body {
     margin-bottom: 12px;
 }
 
+.category-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
 .category-name {
     font-size: 16px;
     font-weight: 600;
