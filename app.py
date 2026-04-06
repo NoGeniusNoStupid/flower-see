@@ -14,13 +14,35 @@ from datetime import datetime
 import cv2
 from skimage.feature import hog
 
+import threading
+import requests
+import time
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'learned'
 app.config['IMAGE_FOLDER'] = '图片'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
+
+def keep_alive():
+    """定时访问自己防止休眠"""
+    while True:
+        try:
+            # 访问 Render 的健康检查端点或首页
+            requests.get('https://flower-see.onrender.com/', timeout=10)
+            print('[KeepAlive] 自唤醒成功')
+        except Exception as e:
+            print(f'[KeepAlive] 自唤醒失败: {e}')
+        time.sleep(10 * 60)  # 每10分钟
+
+
+# 启动后台守护线程（仅在非 debug 模式）
+if not app.debug:
+    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+    keep_alive_thread.start()
+
 # 相似度阈值，低于此值认为"没学会"
-SIMILARITY_THRESHOLD = 0.65
+SIMILARITY_THRESHOLD = 0.85
 
 
 def extract_features(image_path):
@@ -270,7 +292,7 @@ def recognize():
             'recognized': False,
             'category': None,
             'similarity': float(similarity),
-            'message': '我还没学会这种花，请先教我这是什么花！'
+            'message': '相似度太低，未能识别出这是什么花，请先教我这是什么花！'
         })
 
 

@@ -1,0 +1,11 @@
+{
+  "tasks": [
+    {
+      "id": "688e95f9",
+      "cron": "*/12 * * * *",
+      "prompt": "访问 https://flower-see.onrender.com/ 保持服务活跃。使用 WebFetch 工具获取该页面内容以保持活跃。",
+      "createdAt": 1775469696095,
+      "recurring": true
+    }
+  ]
+}
