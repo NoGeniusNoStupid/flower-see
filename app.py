@@ -268,6 +268,39 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/learned/<path:filename>')
+def serve_learned(filename):
+    """提供learned文件夹中的图片访问"""
+    import os
+    from flask import send_from_directory
+    # 安全验证：确保文件在learned目录内
+    safe_path = os.path.normpath(filename)
+    if safe_path.startswith(os.pardir):
+        return jsonify({'error': 'Invalid path'}), 403
+    full_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_path)
+    if os.path.exists(full_path):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], safe_path)
+    return jsonify({'error': 'File not found', 'path': full_path}), 404
+
+
+@app.route('/api/debug/files')
+def debug_files():
+    """调试：列出learned文件夹中的文件"""
+    import os
+    learned_dir = app.config['UPLOAD_FOLDER']
+    if not os.path.exists(learned_dir):
+        return jsonify({'exists': False, 'files': []})
+    files = []
+    for root, dirs, filenames in os.walk(learned_dir):
+        for f in filenames:
+            full_path = os.path.join(root, f)
+            files.append({
+                'path': full_path,
+                'web_path': full_path.replace('\\', '/')
+            })
+    return jsonify({'exists': True, 'files': files})
+
+
 @app.route('/api/recognize', methods=['POST'])
 def recognize():
     """识别花朵API"""
