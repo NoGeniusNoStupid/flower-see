@@ -355,6 +355,60 @@ def list_categories():
     })
 
 
+@app.route('/api/category/<category_name>', methods=['GET'])
+def get_category_images(category_name):
+    """获取某个类别的所有图片"""
+    learned1 = get_all_learned_categories()
+    learned2 = get_learned_from_learned_folder()
+
+    images = []
+    for cat, items in learned1.items():
+        if cat == category_name:
+            for item in items:
+                images.append({
+                    'name': item['name'],
+                    'path': item['path'],
+                    'source': 'builtin'
+                })
+    for cat, items in learned2.items():
+        if cat == category_name:
+            for item in items:
+                images.append({
+                    'name': item['name'],
+                    'path': item['path'],
+                    'source': 'learned'
+                })
+
+    return jsonify({
+        'success': True,
+        'category': category_name,
+        'images': images
+    })
+
+
+@app.route('/api/category/<category_name>/delete', methods=['POST'])
+def delete_category_image(category_name):
+    """删除某个类别中的单张图片"""
+    data = request.get_json()
+    if not data or 'path' not in data:
+        return jsonify({'success': False, 'error': '缺少图片路径'})
+
+    file_path = data['path']
+
+    # 安全检查：只允许删除 learned 文件夹下的图片
+    if not file_path.startswith(app.config['UPLOAD_FOLDER']):
+        return jsonify({'success': False, 'error': '只能删除学习文件夹中的图片'})
+
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': '删除成功'})
+        else:
+            return jsonify({'success': False, 'error': '文件不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'删除失败: {str(e)}'})
+
+
 if __name__ == '__main__':
     import sys
     sys.stdout.reconfigure(encoding='utf-8')

@@ -27,11 +27,16 @@ const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
 const thresholdSlider = document.getElementById('thresholdSlider');
 const thresholdValue = document.getElementById('thresholdValue');
+const categoryModal = document.getElementById('categoryModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalClose = document.getElementById('modalClose');
+const modalBody = document.getElementById('modalBody');
 
 // State
 let currentImageData = null;
 let isRequesting = false;  // 防止并发请求
 let currentThreshold = 0.60;  // 当前阈值
+let currentCategory = null;  // 当前查看的类别
 
 // ============================================
 // Toast 通知
@@ -282,15 +287,93 @@ function renderCategories(categories) {
     }
 
     categoriesGrid.innerHTML = entries.map(([name, info]) => `
-        <div class="category-card">
+        <div class="category-card" data-category="${name}">
             <div class="category-icon">${getFlowerEmoji(name)}</div>
             <div class="category-name">${name}</div>
         </div>
     `).join('');
+
+    // 绑定点击事件
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const category = card.dataset.category;
+            openCategoryModal(category);
+        });
+    });
 }
 
 function showLoading(show) {
     loadingOverlay.style.display = show ? 'flex' : 'none';
+}
+
+// ============================================
+// 类别弹窗
+// ============================================
+async function openCategoryModal(category) {
+    currentCategory = category;
+    modalTitle.textContent = category;
+    modalBody.innerHTML = '<div class="modal-loading">加载中...</div>';
+    categoryModal.classList.add('show');
+
+    try {
+        const response = await fetch(`/api/category/${encodeURIComponent(category)}`);
+        const data = await response.json();
+
+        if (data.success && data.images.length > 0) {
+            modalBody.innerHTML = `
+                <div class="modal-images">
+                    ${data.images.map(img => `
+                        <div class="modal-image-card" data-path="${img.path}">
+                            <img src="/${img.path.replace(/\\/g, '/')}" alt="${img.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%23999%22 font-size=%2212%22>图片加载失败</text></svg>'">
+                            <div class="modal-image-info">${img.name}</div>
+                            <button class="modal-delete-btn" title="删除" onclick="event.stopPropagation(); deleteCategoryImage('${img.path.replace(/\\/g, '\\\\')}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (data.success && data.images.length === 0) {
+            modalBody.innerHTML = '<div class="modal-empty">该类别下没有图片</div>';
+        } else {
+            modalBody.innerHTML = '<div class="modal-empty">加载失败</div>';
+        }
+    } catch (error) {
+        console.error('加载类别图片失败:', error);
+        modalBody.innerHTML = '<div class="modal-empty">加载失败，请重试</div>';
+    }
+}
+
+function closeCategoryModal() {
+    categoryModal.classList.remove('show');
+    currentCategory = null;
+}
+
+async function deleteCategoryImage(imagePath) {
+    if (!confirm('确定要删除这张图片吗？')) return;
+
+    try {
+        const response = await fetch(`/api/category/${encodeURIComponent(currentCategory)}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: imagePath })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('删除成功', 'success');
+            openCategoryModal(currentCategory);  // 刷新列表
+            loadCategories();  // 刷新右侧类别计数
+        } else {
+            showToast(data.error || '删除失败', 'error');
+        }
+    } catch (error) {
+        console.error('删除图片失败:', error);
+        showToast('删除失败', 'error');
+    }
 }
 
 // ============================================
@@ -350,6 +433,12 @@ thresholdSlider.addEventListener('input', (e) => {
     const val = parseInt(e.target.value, 10);
     thresholdValue.textContent = val;
     currentThreshold = val / 100;
+});
+
+// 弹窗关闭
+modalClose.addEventListener('click', closeCategoryModal);
+categoryModal.addEventListener('click', (e) => {
+    if (e.target === categoryModal) closeCategoryModal();
 });
 
 // ============================================
