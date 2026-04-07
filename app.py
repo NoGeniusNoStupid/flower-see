@@ -365,17 +365,20 @@ def get_category_images(category_name):
     for cat, items in learned1.items():
         if cat == category_name:
             for item in items:
+                # 统一路径分隔符为正斜杠
+                web_path = item['path'].replace('\\', '/')
                 images.append({
                     'name': item['name'],
-                    'path': item['path'],
+                    'path': web_path,
                     'source': 'builtin'
                 })
     for cat, items in learned2.items():
         if cat == category_name:
             for item in items:
+                web_path = item['path'].replace('\\', '/')
                 images.append({
                     'name': item['name'],
-                    'path': item['path'],
+                    'path': web_path,
                     'source': 'learned'
                 })
 
@@ -393,7 +396,7 @@ def delete_category_image(category_name):
     if not data or 'path' not in data:
         return jsonify({'success': False, 'error': '缺少图片路径'})
 
-    file_path = data['path']
+    file_path = data['path'].replace('/', '\\')
 
     # 安全检查：只允许删除 learned 文件夹下的图片
     if not file_path.startswith(app.config['UPLOAD_FOLDER']):
