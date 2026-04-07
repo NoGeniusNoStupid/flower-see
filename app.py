@@ -42,7 +42,7 @@ if not app.debug:
     keep_alive_thread.start()
 
 # 相似度阈值，低于此值认为"没学会"
-SIMILARITY_THRESHOLD = 0.60
+SIMILARITY_THRESHOLD = 0.80
 
 
 def extract_features(image_path):

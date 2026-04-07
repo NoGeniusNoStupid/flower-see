@@ -35,7 +35,7 @@ const modalBody = document.getElementById('modalBody');
 // State
 let currentImageData = null;
 let isRequesting = false;  // 防止并发请求
-let currentThreshold = 0.60;  // 当前阈值
+let currentThreshold = 0.80;  // 当前阈值
 let currentCategory = null;  // 当前查看的类别
 
 // ============================================
