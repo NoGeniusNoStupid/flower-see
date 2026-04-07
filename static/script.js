@@ -142,18 +142,23 @@ async function recognizeFlower(retry = true) {
     showLoading(true);
     hideResult();
 
+    let timeoutId = null;
+
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);  // 30秒超时兼容处理
+        timeoutId = setTimeout(() => {
+            showToast('请求超时，请稍后重试', 'error');
+            showLoading(false);
+            isRequesting = false;
+        }, 30000);
 
         const response = await fetch('/api/recognize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: currentImageData }),
-            signal: controller.signal
+            body: JSON.stringify({ image: currentImageData })
         });
 
         clearTimeout(timeoutId);
+        timeoutId = null;
 
         const data = await response.json();
 
@@ -168,6 +173,7 @@ async function recognizeFlower(retry = true) {
         }
     } catch (error) {
         console.error('识别错误:', error);
+        if (timeoutId) clearTimeout(timeoutId);
         if (retry) {
             await new Promise(r => setTimeout(r, 2000));
             recognizeFlower(false);
@@ -202,9 +208,14 @@ async function learnFlower(retry = true) {
     isRequesting = true;
     showLoading(true);
 
+    let timeoutId = null;
+
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);  // 30秒超时兼容处理
+        timeoutId = setTimeout(() => {
+            showToast('请求超时，请稍后重试', 'error');
+            showLoading(false);
+            isRequesting = false;
+        }, 30000);
 
         const response = await fetch('/api/learn', {
             method: 'POST',
@@ -212,11 +223,11 @@ async function learnFlower(retry = true) {
             body: JSON.stringify({
                 image: currentImageData,
                 category: name
-            }),
-            signal: controller.signal
+            })
         });
 
         clearTimeout(timeoutId);
+        timeoutId = null;
 
         const data = await response.json();
 
@@ -230,6 +241,7 @@ async function learnFlower(retry = true) {
         }
     } catch (error) {
         console.error('学习错误:', error);
+        if (timeoutId) clearTimeout(timeoutId);
         if (retry) {
             await new Promise(r => setTimeout(r, 2000));
             learnFlower(false);
