@@ -20,7 +20,6 @@ import time
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'learned'
-app.config['IMAGE_FOLDER'] = '图片'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 
@@ -148,32 +147,6 @@ def cosine_similarity(a, b):
 def get_all_learned_categories():
     """获取所有已学习的类别"""
     categories = {}
-    base_path = app.config['IMAGE_FOLDER']
-
-    if not os.path.exists(base_path):
-        return categories
-
-    for folder in os.listdir(base_path):
-        folder_path = os.path.join(base_path, folder)
-        if os.path.isdir(folder_path):
-            categories[folder] = []
-            for file in os.listdir(folder_path):
-                if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
-                    file_path = os.path.join(folder_path, file)
-                    features = extract_features(file_path)
-                    if features is not None:
-                        categories[folder].append({
-                            'path': file_path,
-                            'features': features.tolist(),
-                            'name': file
-                        })
-
-    return categories
-
-
-def get_learned_from_learned_folder():
-    """获取learned文件夹中学员上传的类别"""
-    categories = {}
     base_path = app.config['UPLOAD_FOLDER']
 
     if not os.path.exists(base_path):
@@ -205,20 +178,7 @@ def recognize_flower(image_data):
     if features is None:
         return None, 0.0
 
-    all_categories = {}
-    # 合并两个来源的类别
-    learned1 = get_all_learned_categories()
-    learned2 = get_learned_from_learned_folder()
-
-    for cat, items in learned1.items():
-        if cat not in all_categories:
-            all_categories[cat] = []
-        all_categories[cat].extend(items)
-
-    for cat, items in learned2.items():
-        if cat not in all_categories:
-            all_categories[cat] = []
-        all_categories[cat].extend(items)
+    all_categories = get_all_learned_categories()
 
     if not all_categories:
         return None, 0.0
@@ -364,50 +324,31 @@ def learn():
 @app.route('/api/categories', methods=['GET'])
 def list_categories():
     """获取所有已学习的类别"""
-    learned1 = get_all_learned_categories()
-    learned2 = get_learned_from_learned_folder()
+    all_categories = get_all_learned_categories()
 
-    all_categories = {}
-    for cat, items in learned1.items():
-        all_categories[cat] = {
+    result = {}
+    for cat, items in all_categories.items():
+        result[cat] = {
             'count': len(items),
-            'source': 'builtin'
+            'source': 'learned'
         }
-    for cat, items in learned2.items():
-        if cat in all_categories:
-            all_categories[cat]['count'] += len(items)
-        else:
-            all_categories[cat] = {
-                'count': len(items),
-                'source': 'learned'
-            }
 
     return jsonify({
         'success': True,
-        'categories': all_categories
+        'categories': result
     })
 
 
 @app.route('/api/category/<category_name>', methods=['GET'])
 def get_category_images(category_name):
     """获取某个类别的所有图片"""
-    learned1 = get_all_learned_categories()
-    learned2 = get_learned_from_learned_folder()
+    all_categories = get_all_learned_categories()
 
     images = []
-    for cat, items in learned1.items():
+    for cat, items in all_categories.items():
         if cat == category_name:
             for item in items:
                 # 统一路径分隔符为正斜杠
-                web_path = item['path'].replace('\\', '/')
-                images.append({
-                    'name': item['name'],
-                    'path': web_path,
-                    'source': 'builtin'
-                })
-    for cat, items in learned2.items():
-        if cat == category_name:
-            for item in items:
                 web_path = item['path'].replace('\\', '/')
                 images.append({
                     'name': item['name'],
@@ -452,7 +393,6 @@ if __name__ == '__main__':
     print('Flower Recognition App Starting...')
     print('=' * 50)
     print('Access: http://localhost:5000')
-    print('Built-in categories: plum blossom, cherry blossom')
-    print('Learned storage: learned/ folder')
+    print('Image storage: learned/ folder')
     print('=' * 50)
     app.run(debug=True, host='0.0.0.0', port=5000)
