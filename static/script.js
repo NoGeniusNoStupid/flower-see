@@ -143,12 +143,17 @@ async function recognizeFlower(retry = true) {
     hideResult();
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);  // 30秒超时兼容处理
+
         const response = await fetch('/api/recognize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: currentImageData }),
-            signal: AbortSignal.timeout(30000)  // 30秒超时
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
@@ -198,6 +203,9 @@ async function learnFlower(retry = true) {
     showLoading(true);
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);  // 30秒超时兼容处理
+
         const response = await fetch('/api/learn', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -205,8 +213,10 @@ async function learnFlower(retry = true) {
                 image: currentImageData,
                 category: name
             }),
-            signal: AbortSignal.timeout(30000)
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
