@@ -47,6 +47,16 @@
                     <input type="file" id="fileInput" accept="image/*" hidden>
                 </div>
 
+                <!-- 阈值设置 -->
+                <div class="threshold-section">
+                    <label class="threshold-label">
+                        识别阈值：<span id="thresholdValue">60</span>%
+                    </label>
+                    <input type="range" class="threshold-slider" id="thresholdSlider"
+                           min="30" max="95" value="60" step="5">
+                    <p class="threshold-hint">阈值越低，越容易识别成功</p>
+                </div>
+
                 <button class="recognize-btn" id="recognizeBtn" disabled>
                     <span class="btn-icon">🔍</span>
                     <span class="btn-text">开始识别</span>

@@ -42,7 +42,7 @@ if not app.debug:
     keep_alive_thread.start()
 
 # 相似度阈值，低于此值认为"没学会"
-SIMILARITY_THRESHOLD = 0.85
+SIMILARITY_THRESHOLD = 0.60
 
 
 def extract_features(image_path):
@@ -277,9 +277,10 @@ def recognize():
         return jsonify({'success': False, 'error': '没有图片数据'})
 
     image_data = data['image']
+    threshold = float(data.get('threshold', SIMILARITY_THRESHOLD))
     category, similarity = recognize_flower(image_data)
 
-    if category:
+    if category and similarity >= threshold:
         return jsonify({
             'success': True,
             'recognized': True,

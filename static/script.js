@@ -25,10 +25,13 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const categoriesGrid = document.getElementById('categoriesGrid');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const thresholdValue = document.getElementById('thresholdValue');
 
 // State
 let currentImageData = null;
 let isRequesting = false;  // 防止并发请求
+let currentThreshold = 0.60;  // 当前阈值
 
 // ============================================
 // Toast 通知
@@ -154,7 +157,10 @@ async function recognizeFlower(retry = true) {
         const response = await fetch('/api/recognize', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: currentImageData })
+            body: JSON.stringify({
+                image: currentImageData,
+                threshold: currentThreshold
+            })
         });
 
         clearTimeout(timeoutId);
@@ -337,6 +343,13 @@ learnBtn.addEventListener('click', learnFlower);
 // 键盘事件
 flowerName.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') learnFlower();
+});
+
+// 阈值滑块
+thresholdSlider.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    thresholdValue.textContent = val;
+    currentThreshold = val / 100;
 });
 
 // ============================================
